@@ -1,0 +1,18 @@
+{
+  "name": "cryptopredict-contracts",
+  "version": "1.0.0",
+  "description": "CryptoPredict smart contracts — Base Sepolia",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network base-sepolia",
+    "verify": "hardhat verify --network base-sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0"
+  }
+}
