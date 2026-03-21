@@ -1,23 +1,21 @@
 const hre = require("hardhat");
 const fs = require("fs");
 
+// Contratti esistenti — non rideploya
 const EXISTING = {
   CryptoPredictToken: "0x699304A362E41539d918E44188E1033999202cA0",
   PredictionMarket:   "0x160842b6b4b253F9c9EfA17FC0EfBB3c4B2c6c45",
-  CPREDPresale:       "0xC9173e1C16Bc82D67f41Ffd025a89CC4f6C4Ac17",
-  PresaleStaking:     "", // da deployare
+  PresaleStaking:     "0x5dB131b4e81297c7e200017dA54eC28820454491",
+  CPREDPresale:       "", // v2 — rideploya
 };
 
-// Presale dura 90 giorni dal deploy
-const PRESALE_DURATION_DAYS = 90;
-// 5M CPRED dal pool Ecosystem per i reward staking
-const STAKING_REWARDS = hre.ethers.parseEther("5000000");
+const STAKING_REWARDS = hre.ethers.parseEther("5000000"); // 5M già nel vecchio, usiamo solo il nuovo presale
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
-  console.log("🚀 Deploying with:", deployer.address);
+  console.log("🚀 Deployer:", deployer.address);
   console.log("   Balance:", hre.ethers.formatEther(
-    await hre.ethers.provider.getBalance(deployer.address)), "ETH");
+    await hre.ethers.provider.getBalance(deployer.address)), "ETH\n");
 
   const GAS = {
     gasLimit: 4_000_000,
@@ -27,41 +25,48 @@ async function main() {
 
   const tokenAddr   = EXISTING.CryptoPredictToken;
   const marketAddr  = EXISTING.PredictionMarket;
-  const presaleAddr = EXISTING.CPREDPresale;
-  let stakingAddr   = EXISTING.PresaleStaking;
+  const stakingAddr = EXISTING.PresaleStaking;
+  let   presaleAddr = EXISTING.CPREDPresale;
 
   console.log("⏭  CryptoPredictToken:", tokenAddr);
-  console.log("⏭  PredictionMarket:", marketAddr);
-  console.log("⏭  CPREDPresale:", presaleAddr);
+  console.log("⏭  PredictionMarket:  ", marketAddr);
+  console.log("⏭  PresaleStaking:    ", stakingAddr);
 
-  // ── Deploy PresaleStaking ─────────────────────────────────────
-  if (!stakingAddr) {
-    console.log("\n📦 Deploying PresaleStaking...");
-    const presaleEndsAt = Math.floor(Date.now() / 1000) + PRESALE_DURATION_DAYS * 86400;
-    const Staking = await hre.ethers.getContractFactory("PresaleStaking");
-    const staking = await Staking.deploy(tokenAddr, presaleEndsAt, GAS);
-    await staking.waitForDeployment();
-    stakingAddr = await staking.getAddress();
-    console.log("✅ PresaleStaking:", stakingAddr);
+  // ── Deploy CPREDPresale v2 ────────────────────────────────────
+  if (!presaleAddr) {
+    console.log("\n📦 Deploying CPREDPresale v2...");
+    const Presale = await hre.ethers.getContractFactory("CPREDPresale");
+    const presale = await Presale.deploy(tokenAddr, GAS);
+    await presale.waitForDeployment();
+    presaleAddr = await presale.getAddress();
+    console.log("✅ CPREDPresale v2:", presaleAddr);
     await sleep(3000);
 
-    // Deposita 5M CPRED come reward pool (dall'allocazione Ecosystem)
-    console.log("\n🔄 Depositing 5M CPRED rewards into staking pool...");
+    // Trasferisci 45M CPRED al nuovo contratto presale
+    console.log("\n🔄 Trasferimento 45M CPRED al nuovo presale...");
     const token = await hre.ethers.getContractAt("CryptoPredictToken", tokenAddr);
-
-    // Prima approva
-    const approveTx = await token.approve(stakingAddr, STAKING_REWARDS, GAS);
-    await approveTx.wait();
-    console.log("✅ Approved");
+    const PRESALE_SUPPLY = hre.ethers.parseEther("45000000");
+    const tx = await token.transfer(presaleAddr, PRESALE_SUPPLY, GAS);
+    await tx.wait();
+    console.log("✅ 45M CPRED trasferiti");
     await sleep(2000);
 
-    // Poi deposita
-    const stakingC = await hre.ethers.getContractAt("PresaleStaking", stakingAddr);
-    const depositTx = await stakingC.depositRewards(STAKING_REWARDS, GAS);
-    await depositTx.wait();
-    console.log("✅ 5M CPRED depositati nel reward pool");
+    // Verifica saldo
+    const bal = await token.balanceOf(presaleAddr);
+    console.log("   Saldo presale contract:", hre.ethers.formatEther(bal), "CPRED");
+
+    // Verifica stage
+    const stageInfo = await presale.getStageInfo();
+    console.log("\n📊 Stage configurati:");
+    console.log(`   Stage 1: $0.0${stageInfo[0].priceUsdCents} · ${hre.ethers.formatEther(stageInfo[0].allocation)} CPRED · 3 giorni`);
+    console.log(`   Stage 2: $0.0${stageInfo[1].priceUsdCents} · ${hre.ethers.formatEther(stageInfo[1].allocation)} CPRED · 3 giorni`);
+    console.log(`   Stage 3: $0.${stageInfo[2].priceUsdCents} · ${hre.ethers.formatEther(stageInfo[2].allocation)} CPRED · 3 giorni`);
+
+    const endsAt = await presale.currentStageEndsAt();
+    const endsDate = new Date(Number(endsAt) * 1000);
+    console.log(`\n⏱  Stage 1 scade il: ${endsDate.toISOString()}`);
   } else {
-    console.log("⏭  PresaleStaking già deployato:", stakingAddr);
+    console.log("⏭  CPREDPresale già deployato:", presaleAddr);
   }
 
   // Salva
@@ -77,13 +82,14 @@ async function main() {
       PresaleStaking:     stakingAddr,
     }
   };
-
   fs.mkdirSync("./deployments", { recursive: true });
   fs.writeFileSync("./deployments/base-sepolia.json", JSON.stringify(deployment, null, 2));
 
   console.log("\n🎉 Deploy completato!");
-  console.log("   PresaleStaking:", stakingAddr);
-  console.log(`   https://sepolia.basescan.org/address/${stakingAddr}`);
+  console.log("   CPREDPresale v2:", presaleAddr);
+  console.log(`   https://sepolia.basescan.org/address/${presaleAddr}`);
+  console.log("\n💡 Stage avanzano automaticamente dopo 3 giorni O sell-out");
+  console.log("💡 I token rimasti per stage vengono bruciati automaticamente");
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
