@@ -1,6 +1,12 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
+const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
+// Usa un account vuoto se la chiave non è configurata (solo per compile/test)
+const accounts = PRIVATE_KEY && PRIVATE_KEY.length === 64
+  ? [PRIVATE_KEY]
+  : [];
+
 module.exports = {
   solidity: {
     version: "0.8.24",
@@ -12,9 +18,7 @@ module.exports = {
   networks: {
     "base-sepolia": {
       url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
-      accounts: process.env.DEPLOYER_PRIVATE_KEY
-        ? [process.env.DEPLOYER_PRIVATE_KEY]
-        : [],
+      accounts,
       chainId: 84532,
     },
   },
@@ -32,11 +36,5 @@ module.exports = {
         },
       },
     ],
-  },
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache",
-    artifacts: "./artifacts",
   },
 };
