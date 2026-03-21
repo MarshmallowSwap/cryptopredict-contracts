@@ -211,6 +211,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         nonReentrant
         marketExists(marketId)
     {
+        require(msg.sender == owner() || resolvers[msg.sender], "Not authorized to resolve");
         Market storage m = markets[marketId];
         require(
             msg.sender == owner() || msg.sender == m.creator,
@@ -287,9 +288,9 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
      */
     function cancelMarket(uint256 marketId)
         external
-        onlyOwner
         marketExists(marketId)
     {
+        require(msg.sender == owner() || resolvers[msg.sender], "Not authorized to cancel");
         Market storage m = markets[marketId];
         require(m.status == MarketStatus.Open, "Not open");
         m.status = MarketStatus.Cancelled;
