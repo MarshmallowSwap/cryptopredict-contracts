@@ -3,11 +3,11 @@ const fs = require("fs");
 
 const EXISTING = {
   CryptoPredictToken: "0x699304A362E41539d918E44188E1033999202cA0",
-  CPREDPresale:       "",  // v2 da deployare
+  CPREDPresale:       "",  // v2 — ancora da deployare
   PresaleStaking:     "0x5dB131b4e81297c7e200017dA54eC28820454491",
-  MockUSDC:           "",
-  MockUSDT:           "",
-  PredictionMarket:   "",  // v2 da deployare
+  MockUSDC:           "0x53142fD0C5Ad28b07CBC85215dB9219b58314D36",
+  MockUSDT:           "0x3cfd2e869d4b2ddF4E4D62e5749b510f718fecee",
+  PredictionMarket:   "0x5264C5212b57ca1bf412b104165Cbd8173aD6F11",
 };
 
 async function main() {
