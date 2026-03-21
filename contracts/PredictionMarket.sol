@@ -80,17 +80,18 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
 
     // ── CONSTRUCTOR ──────────────────────────────────────────────────
 
+    // Indirizzi valute ERC20 (impostati dal costruttore, usati per future integrazioni)
+    address public mockUsdc;
+    address public mockUsdt;
+
     constructor(
         address _cpredToken,
         address _usdc,
         address _usdt
     ) Ownable(msg.sender) {
         cpredToken = CryptoPredictToken(payable(_cpredToken));
-        // Configura le valute supportate
-        currencies[0] = CurrencyConfig({ token: address(0), decimals: 18, enabled: true });  // ETH
-        currencies[1] = CurrencyConfig({ token: _usdc,      decimals: 6,  enabled: true });  // USDC
-        currencies[2] = CurrencyConfig({ token: _usdt,      decimals: 6,  enabled: true });  // USDT
-        currencies[3] = CurrencyConfig({ token: _cpredToken,decimals: 18, enabled: true });  // CPRED
+        mockUsdc   = _usdc;
+        mockUsdt   = _usdt;
     }
 
     // ── MODIFIERS ────────────────────────────────────────────────────
@@ -121,7 +122,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     ) external payable returns (uint256 marketId) {
         require(bytes(question).length > 0, "Empty question");
         require(expiresAt > block.timestamp + 1 hours, "Expiry too soon");
-        require(msg.value >= 0.001 ether, "Min creation fee: 0.001 ETH");
+        require(msg.value >= 0.0025 ether, "Min creation fee: 0.0025 ETH");
 
         marketId = marketCount++;
         markets[marketId] = Market({
