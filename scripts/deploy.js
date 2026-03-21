@@ -102,6 +102,13 @@ async function main() {
 
   // ── Deploy CPREDPresale v2 ────────────────────────────────────
   if (!presaleAddr) {
+    // Aggiungi team wallet come resolver autorizzato
+    console.log("\n🔑 Aggiunta team wallet come resolver...");
+    const addResolverTx = await market.addResolver("0x1902b780b12833C0a3bE28C5210db58409a7374E");
+    await addResolverTx.wait();
+    console.log("✅ Resolver aggiunto:", "0x1902b780b12833C0a3bE28C5210db58409a7374E");
+    await sleep(2000);
+
     console.log("\n📦 Deploying CPREDPresale v2...");
     const Presale = await hre.ethers.getContractFactory("CPREDPresale");
     const presale = await Presale.deploy(tokenAddr, GAS);
