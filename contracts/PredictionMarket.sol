@@ -58,6 +58,9 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(address => Position)) public positions;
     mapping(address => uint256[]) public userMarkets;
 
+    // Resolvers autorizzati (oltre all'owner)
+    mapping(address => bool) public resolvers;
+
     // Fee
     uint256 public constant PLATFORM_FEE_BPS = 200;  // 2% = 200 basis points
     uint256 public constant CREATOR_FEE_BPS  = 100;  // 1%
@@ -73,6 +76,8 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     // ── EVENTS ───────────────────────────────────────────────────────
 
     event MarketCreated(uint256 indexed id, address creator, string question, uint256 expiresAt);
+    event ResolverAdded(address indexed resolver);
+    event ResolverRemoved(address indexed resolver);
     event BetPlaced(uint256 indexed marketId, address indexed user, bool side, uint256 amount);
     event MarketResolved(uint256 indexed id, Outcome outcome, address resolver);
     event PayoutClaimed(uint256 indexed marketId, address indexed user, uint256 amount);
@@ -92,6 +97,18 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         cpredToken = CryptoPredictToken(payable(_cpredToken));
         mockUsdc   = _usdc;
         mockUsdt   = _usdt;
+    }
+
+    // ── RESOLVER MANAGEMENT ─────────────────────────────────────────
+
+    function addResolver(address _resolver) external onlyOwner {
+        resolvers[_resolver] = true;
+        emit ResolverAdded(_resolver);
+    }
+
+    function removeResolver(address _resolver) external onlyOwner {
+        resolvers[_resolver] = false;
+        emit ResolverRemoved(_resolver);
     }
 
     // ── MODIFIERS ────────────────────────────────────────────────────
