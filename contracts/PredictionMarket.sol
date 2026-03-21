@@ -80,8 +80,17 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
 
     // ── CONSTRUCTOR ──────────────────────────────────────────────────
 
-    constructor(address _cpredToken) Ownable(msg.sender) {
+    constructor(
+        address _cpredToken,
+        address _usdc,
+        address _usdt
+    ) Ownable(msg.sender) {
         cpredToken = CryptoPredictToken(payable(_cpredToken));
+        // Configura le valute supportate
+        currencies[0] = CurrencyConfig({ token: address(0), decimals: 18, enabled: true });  // ETH
+        currencies[1] = CurrencyConfig({ token: _usdc,      decimals: 6,  enabled: true });  // USDC
+        currencies[2] = CurrencyConfig({ token: _usdt,      decimals: 6,  enabled: true });  // USDT
+        currencies[3] = CurrencyConfig({ token: _cpredToken,decimals: 18, enabled: true });  // CPRED
     }
 
     // ── MODIFIERS ────────────────────────────────────────────────────
