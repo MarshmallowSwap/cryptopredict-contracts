@@ -1,15 +1,14 @@
 const hre = require("hardhat");
 const fs = require("fs");
 
-// Contratti esistenti — non rideploya
 const EXISTING = {
   CryptoPredictToken: "0x699304A362E41539d918E44188E1033999202cA0",
-  PredictionMarket:   "0x160842b6b4b253F9c9EfA17FC0EfBB3c4B2c6c45",
+  CPREDPresale:       "",  // v2 da deployare
   PresaleStaking:     "0x5dB131b4e81297c7e200017dA54eC28820454491",
-  CPREDPresale:       "", // v2 — rideploya
+  MockUSDC:           "",
+  MockUSDT:           "",
+  PredictionMarket:   "",  // v2 da deployare
 };
-
-const STAKING_REWARDS = hre.ethers.parseEther("5000000"); // 5M già nel vecchio, usiamo solo il nuovo presale
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -18,19 +17,88 @@ async function main() {
     await hre.ethers.provider.getBalance(deployer.address)), "ETH\n");
 
   const GAS = {
-    gasLimit: 4_000_000,
+    gasLimit: 5_000_000,
     maxFeePerGas:         hre.ethers.parseUnits("0.15", "gwei"),
     maxPriorityFeePerGas: hre.ethers.parseUnits("0.05", "gwei"),
   };
 
-  const tokenAddr   = EXISTING.CryptoPredictToken;
-  const marketAddr  = EXISTING.PredictionMarket;
+  const tokenAddr = EXISTING.CryptoPredictToken;
+  let usdcAddr  = EXISTING.MockUSDC;
+  let usdtAddr  = EXISTING.MockUSDT;
+  let marketAddr = EXISTING.PredictionMarket;
+  let presaleAddr = EXISTING.CPREDPresale;
   const stakingAddr = EXISTING.PresaleStaking;
-  let   presaleAddr = EXISTING.CPREDPresale;
 
   console.log("⏭  CryptoPredictToken:", tokenAddr);
-  console.log("⏭  PredictionMarket:  ", marketAddr);
   console.log("⏭  PresaleStaking:    ", stakingAddr);
+
+  // ── Deploy Mock USDC ─────────────────────────────────────────
+  if (!usdcAddr) {
+    console.log("\n📦 Deploying Mock USDC...");
+    const Mock = await hre.ethers.getContractFactory("MockERC20");
+    const usdc = await Mock.deploy("USD Coin (Testnet)", "USDC", 6, GAS);
+    await usdc.waitForDeployment();
+    usdcAddr = await usdc.getAddress();
+    console.log("✅ MockUSDC:", usdcAddr);
+    await sleep(2000);
+  } else {
+    console.log("⏭  MockUSDC:", usdcAddr);
+  }
+
+  // ── Deploy Mock USDT ─────────────────────────────────────────
+  if (!usdtAddr) {
+    console.log("\n📦 Deploying Mock USDT...");
+    const Mock = await hre.ethers.getContractFactory("MockERC20");
+    const usdt = await Mock.deploy("Tether USD (Testnet)", "USDT", 6, GAS);
+    await usdt.waitForDeployment();
+    usdtAddr = await usdt.getAddress();
+    console.log("✅ MockUSDT:", usdtAddr);
+    await sleep(2000);
+  } else {
+    console.log("⏭  MockUSDT:", usdtAddr);
+  }
+
+  // ── Deploy PredictionMarket v2 ────────────────────────────────
+  if (!marketAddr) {
+    console.log("\n📦 Deploying PredictionMarket v2 (multi-currency)...");
+    const Market = await hre.ethers.getContractFactory("PredictionMarket");
+    const market = await Market.deploy(tokenAddr, usdcAddr, usdtAddr, GAS);
+    await market.waitForDeployment();
+    marketAddr = await market.getAddress();
+    console.log("✅ PredictionMarket v2:", marketAddr);
+    await sleep(3000);
+
+    // Crea mercati demo
+    console.log("\n🎯 Creating demo markets...");
+    const now = Math.floor(Date.now() / 1000);
+    const m1 = await market.createMarket(
+      "BTC supererà $100,000 entro fine mese?", "crypto", "BTC",
+      100000_00000000n, true, now + 30 * 86400,
+      { ...GAS, value: hre.ethers.parseEther("0.005") }
+    );
+    await m1.wait();
+    console.log("✅ Market 0: BTC $100K");
+    await sleep(2000);
+
+    const m2 = await market.createMarket(
+      "ETF SOL approvato dalla SEC nel 2025?", "macro", "SOL",
+      0n, true, now + 90 * 86400,
+      { ...GAS, value: hre.ethers.parseEther("0.005") }
+    );
+    await m2.wait();
+    console.log("✅ Market 1: SOL ETF");
+    await sleep(2000);
+
+    const m3 = await market.createMarket(
+      "ETH supererà $3,000 entro questa settimana?", "crypto", "ETH",
+      3000_00000000n, true, now + 7 * 86400,
+      { ...GAS, value: hre.ethers.parseEther("0.005") }
+    );
+    await m3.wait();
+    console.log("✅ Market 2: ETH $3K");
+  } else {
+    console.log("⏭  PredictionMarket v2:", marketAddr);
+  }
 
   // ── Deploy CPREDPresale v2 ────────────────────────────────────
   if (!presaleAddr) {
@@ -40,39 +108,19 @@ async function main() {
     await presale.waitForDeployment();
     presaleAddr = await presale.getAddress();
     console.log("✅ CPREDPresale v2:", presaleAddr);
-    await sleep(3000);
-
-    // Trasferisci 45M CPRED al nuovo contratto presale
-    console.log("\n🔄 Trasferimento 45M CPRED al nuovo presale...");
-    const token = await hre.ethers.getContractAt("CryptoPredictToken", tokenAddr);
-    const PRESALE_SUPPLY = hre.ethers.parseEther("45000000");
-    const tx = await token.transfer(presaleAddr, PRESALE_SUPPLY, GAS);
-    await tx.wait();
-    console.log("✅ 45M CPRED trasferiti");
     await sleep(2000);
 
-    // Verifica saldo
-    const bal = await token.balanceOf(presaleAddr);
-    console.log("   Saldo presale contract:", hre.ethers.formatEther(bal), "CPRED");
-
-    // Verifica stage
-    const stageInfo = await presale.getStageInfo();
-    console.log("\n📊 Stage configurati:");
-    console.log(`   Stage 1: $0.0${stageInfo[0].priceUsdCents} · ${hre.ethers.formatEther(stageInfo[0].allocation)} CPRED · 3 giorni`);
-    console.log(`   Stage 2: $0.0${stageInfo[1].priceUsdCents} · ${hre.ethers.formatEther(stageInfo[1].allocation)} CPRED · 3 giorni`);
-    console.log(`   Stage 3: $0.${stageInfo[2].priceUsdCents} · ${hre.ethers.formatEther(stageInfo[2].allocation)} CPRED · 3 giorni`);
-
-    const endsAt = await presale.currentStageEndsAt();
-    const endsDate = new Date(Number(endsAt) * 1000);
-    console.log(`\n⏱  Stage 1 scade il: ${endsDate.toISOString()}`);
+    const token = await hre.ethers.getContractAt("CryptoPredictToken", tokenAddr);
+    const tx = await token.transfer(presaleAddr, hre.ethers.parseEther("45000000"), GAS);
+    await tx.wait();
+    console.log("✅ 45M CPRED trasferiti al presale");
   } else {
-    console.log("⏭  CPREDPresale già deployato:", presaleAddr);
+    console.log("⏭  CPREDPresale v2:", presaleAddr);
   }
 
   // Salva
   const deployment = {
-    network: "base-sepolia",
-    chainId: 84532,
+    network: "base-sepolia", chainId: 84532,
     deployer: deployer.address,
     deployedAt: new Date().toISOString(),
     contracts: {
@@ -80,16 +128,19 @@ async function main() {
       PredictionMarket:   marketAddr,
       CPREDPresale:       presaleAddr,
       PresaleStaking:     stakingAddr,
+      MockUSDC:           usdcAddr,
+      MockUSDT:           usdtAddr,
     }
   };
   fs.mkdirSync("./deployments", { recursive: true });
   fs.writeFileSync("./deployments/base-sepolia.json", JSON.stringify(deployment, null, 2));
 
   console.log("\n🎉 Deploy completato!");
-  console.log("   CPREDPresale v2:", presaleAddr);
-  console.log(`   https://sepolia.basescan.org/address/${presaleAddr}`);
-  console.log("\n💡 Stage avanzano automaticamente dopo 3 giorni O sell-out");
-  console.log("💡 I token rimasti per stage vengono bruciati automaticamente");
+  console.log("   PredictionMarket v2:", marketAddr);
+  console.log("   CPREDPresale v2:    ", presaleAddr);
+  console.log("   MockUSDC:           ", usdcAddr);
+  console.log("   MockUSDT:           ", usdtAddr);
+  console.log(`\n   https://sepolia.basescan.org/address/${marketAddr}`);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
