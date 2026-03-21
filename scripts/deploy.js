@@ -62,7 +62,11 @@ async function main() {
   if (!marketAddr) {
     console.log("\n📦 Deploying PredictionMarket v2 (multi-currency)...");
     const Market = await hre.ethers.getContractFactory("PredictionMarket");
-    const market = await Market.deploy(tokenAddr, usdcAddr, usdtAddr, GAS);
+    const market = await Market.deploy(tokenAddr, usdcAddr, usdtAddr, {
+      gasLimit: GAS.gasLimit,
+      maxFeePerGas: GAS.maxFeePerGas,
+      maxPriorityFeePerGas: GAS.maxPriorityFeePerGas
+    });
     await market.waitForDeployment();
     marketAddr = await market.getAddress();
     console.log("✅ PredictionMarket v2:", marketAddr);
