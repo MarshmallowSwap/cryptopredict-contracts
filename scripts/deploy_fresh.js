@@ -41,9 +41,7 @@ async function main() {
   );
   await token.waitForDeployment();
   r.CryptoPredictToken = await token.getAddress();
-  const supply = await token.totalSupply();
   console.log("✅ CryptoPredictToken:", r.CryptoPredictToken);
-  console.log("   Supply:", hre.ethers.formatEther(supply), "CPRED");
   await sleep(2000);
 
   // ── 4. PredictionMarket v2 ───────────────────────────────────────
