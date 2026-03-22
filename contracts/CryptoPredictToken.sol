@@ -86,10 +86,22 @@ contract CryptoPredictToken is ERC20, ERC20Burnable, Ownable {
         emit RewardClaimed(msg.sender, reward);
     }
 
-    /// @notice Deposita ETH nel reward pool (chiamato dal PredictionMarket)
+    /// @notice Deposita ETH nel reward pool — chiamato da PredictionMarket ad ogni claimPayout
     function depositRewards() external payable {
         rewardPool += msg.value;
         emit RewardDeposited(msg.value);
+    }
+
+    /// @notice ETH totale disponibile nel reward pool per gli staker
+    function totalRewardPool() external view returns (uint256) {
+        return rewardPool;
+    }
+
+    /// @notice Reward stimato per un utente basato sul suo stake attuale
+    function estimatedReward(address user) external view returns (uint256) {
+        if (totalStaked == 0 || stakedBalance[user] == 0) return pendingRewards[user];
+        uint256 share = (rewardPool * stakedBalance[user]) / totalStaked;
+        return pendingRewards[user] + share;
     }
 
     function _updateRewards(address user) internal {
