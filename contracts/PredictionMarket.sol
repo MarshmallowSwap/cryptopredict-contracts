@@ -18,12 +18,19 @@ import "./CryptoPredictToken.sol";
  *
  * Yield: il contratto accumula le fee e le distribuisce agli staker CPRED.
  */
+interface IERC20 {
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function transfer(address to, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+}
+
 contract PredictionMarket is Ownable, ReentrancyGuard {
 
     // ── STRUTTURE ────────────────────────────────────────────────────
 
     enum MarketStatus { Open, Closed, Resolved, Cancelled }
-    enum Outcome { Unresolved, YES, NO }
+    enum Outcome      { Unresolved, YES, NO }
+    enum Currency     { ETH, USDC, USDT, CPRED }
 
     struct Market {
         uint256 id;
@@ -40,6 +47,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         MarketStatus status;
         Outcome outcome;
         address resolver;       // chi ha risolto
+        Currency currency;      // valuta del mercato (ETH/USDC/USDT/CPRED)
     }
 
     struct Position {
@@ -60,6 +68,10 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
 
     // Resolvers autorizzati (oltre all'owner)
     mapping(address => bool) public resolvers;
+
+    // Indirizzi token ERC20 per le scommesse
+    address public usdcToken;
+    address public usdtToken;
 
     // Requisito CPRED per creare mercati
     uint256 public minCpredToCreate = 1000e18;  // 1000 CPRED default
@@ -103,6 +115,8 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         cpredToken = CryptoPredictToken(payable(_cpredToken));
         mockUsdc   = _usdc;
         mockUsdt   = _usdt;
+        usdcToken  = _usdc;
+        usdtToken  = _usdt;
     }
 
     // ── CPRED REQUIREMENT ────────────────────────────────────────────
@@ -170,11 +184,26 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         string calldata assetSymbol,
         uint256 targetPrice,
         bool    targetAbove,
-        uint256 expiresAt
+        uint256 expiresAt,
+        Currency currency,
+        uint256  liquidityAmount  // per ERC20; ignorato per ETH (usa msg.value)
     ) external payable returns (uint256 marketId) {
         require(bytes(question).length > 0, "Empty question");
         require(expiresAt > block.timestamp + 1 hours, "Expiry too soon");
-        require(msg.value >= 0.0025 ether, "Min creation fee: 0.0025 ETH");
+
+        // Gestione liquidità per valuta
+        uint256 initialLiq;
+        if (currency == Currency.ETH) {
+            require(msg.value >= 0.0025 ether, "Min 0.0025 ETH");
+            initialLiq = msg.value;
+        } else {
+            require(liquidityAmount > 0, "Liquidity required");
+            address tokenAddr = _currencyToken(currency);
+            require(tokenAddr != address(0), "Token not configured");
+            require(IERC20(tokenAddr).transferFrom(msg.sender, address(this), liquidityAmount),
+                "Liquidity transfer failed");
+            initialLiq = liquidityAmount;
+        }
 
         // Verifica requisito CPRED (wallet + staked)
         if (minCpredToCreate > 0) {
@@ -194,7 +223,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
             targetPrice:  targetPrice,
             targetAbove:  targetAbove,
             expiresAt:    expiresAt,
-            yesPool:      msg.value,  // il creatore deposita liquidità iniziale
+            yesPool:      initialLiq,
             noPool:       0,
             yieldAccrued: 0,
             status:       MarketStatus.Open,
@@ -433,6 +462,22 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
 
     function withdraw() external onlyOwner {
         payable(owner()).transfer(address(this).balance);
+    }
+
+    /// @dev Ritorna l'indirizzo del token per una data Currency
+    function _currencyToken(Currency cur) internal view returns (address) {
+        if (cur == Currency.USDC) return usdcToken;
+        if (cur == Currency.USDT) return usdtToken;
+        if (cur == Currency.CPRED) return address(cpredToken);
+        return address(0); // ETH
+    }
+
+    /// @notice Aggiorna indirizzi token ERC20
+    function setTokenAddresses(address _usdc, address _usdt) external onlyOwner {
+        usdcToken = _usdc;
+        usdtToken = _usdt;
+        mockUsdc  = _usdc;
+        mockUsdt  = _usdt;
     }
 
     receive() external payable {}
