@@ -69,7 +69,8 @@ async function main() {
     ["ETH supererà $3,000 entro questa settimana?", "crypto", "ETH", now + 7*86400],
   ];
   for (const [q, cat, asset, exp] of demos) {
-    const tx = await market.createMarket(q, cat, asset, 0n, true, BigInt(exp),
+    // Currency.ETH = 0, liquidityAmount = 0 (usa msg.value per ETH)
+    const tx = await market.createMarket(q, cat, asset, 0n, true, BigInt(exp), 0, 0n,
       { value: hre.ethers.parseEther("0.0025") });
     await tx.wait();
     console.log("✅", q.slice(0, 40) + "...");
