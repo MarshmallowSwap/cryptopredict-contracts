@@ -279,14 +279,15 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         nonReentrant
         marketExists(marketId)
     {
-        require(msg.sender == owner() || resolvers[msg.sender], "Not authorized to resolve");
+        bool isAdmin = msg.sender == owner() || resolvers[msg.sender];
+        require(isAdmin, "Not authorized to resolve");
         Market storage m = markets[marketId];
-        require(
-            msg.sender == owner() || msg.sender == m.creator,
-            "Not authorized"
-        );
         require(m.status == MarketStatus.Open, "Not open");
-        require(block.timestamp >= m.expiresAt, "Not expired yet");
+        // Admin/resolver possono risolvere in anticipo (forza risoluzione)
+        // Utenti normali devono aspettare la scadenza
+        if (!isAdmin) {
+            require(block.timestamp >= m.expiresAt, "Not expired yet");
+        }
 
         m.status  = MarketStatus.Resolved;
         m.outcome = yesWon ? Outcome.YES : Outcome.NO;
