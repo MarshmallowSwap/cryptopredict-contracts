@@ -243,6 +243,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         marketExists(marketId)
         marketOpen(marketId)
     {
+        require(markets[marketId].currency == Currency.ETH, "Use placeBetERC20 for token markets");
         require(msg.value >= 0.0001 ether, "Min bet: 0.0001 ETH");
 
         Market storage m = markets[marketId];
@@ -308,6 +309,45 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     /**
      * @notice Ritira la vincita dopo la risoluzione
      */
+    // ── PLACE BET ERC20 ──────────────────────────────────────────────
+
+    /// @notice Piazza una scommessa con token ERC20 (USDC/USDT/CPRED)
+    function placeBetERC20(
+        uint256 marketId,
+        bool side,
+        uint8 curIdx,
+        uint256 amount
+    )
+        external
+        nonReentrant
+        marketExists(marketId)
+        marketOpen(marketId)
+    {
+        Market storage m = markets[marketId];
+        require(m.currency != Currency.ETH, "Use placeBet for ETH markets");
+        require(uint8(m.currency) == curIdx, "Wrong currency for this market");
+        require(amount > 0, "Amount must be > 0");
+
+        address tokenAddr = _currencyToken(m.currency);
+        require(tokenAddr != address(0), "Token not configured");
+        require(IERC20(tokenAddr).transferFrom(msg.sender, address(this), amount), "Transfer failed");
+
+        Position storage pos = positions[marketId][msg.sender];
+        if (pos.amount > 0) {
+            require(pos.side == side, "Cannot bet both sides");
+        } else {
+            pos.marketId = marketId;
+            pos.side     = side;
+        }
+        pos.amount += amount;
+
+        if (side) { m.yesPool += amount; }
+        else       { m.noPool  += amount; }
+
+        emit BetPlaced(marketId, msg.sender, side, amount);
+    }
+
+
     function claimPayout(uint256 marketId)
         external
         nonReentrant
