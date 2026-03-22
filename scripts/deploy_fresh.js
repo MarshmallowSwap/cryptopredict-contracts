@@ -90,14 +90,17 @@ async function main() {
   const PRESALE_SUPPLY = hre.ethers.parseEther("45000000");
   const txP = await token.transfer(r.CPREDPresale, PRESALE_SUPPLY);
   await txP.wait();
+  await sleep(4000); // attendi che il nodo indicizzi il blocco
   const presaleBal = await token.balanceOf(r.CPREDPresale);
   console.log("✅ Presale finanziata:", hre.ethers.formatEther(presaleBal), "CPRED");
+  if (presaleBal === 0n) console.log("⚠️  Balance ancora 0 — normale su testnet, il tx è confermato");
   await sleep(2000);
 
   // ── 6. PresaleStaking ────────────────────────────────────────────
   console.log("\n📦 [6/6] PresaleStaking...");
   const Staking = await hre.ethers.getContractFactory("PresaleStaking");
-  const staking = await Staking.deploy(r.CryptoPredictToken);
+  const presaleEndsAt = Math.floor(Date.now() / 1000) + 90 * 86400; // 90 giorni
+  const staking = await Staking.deploy(r.CryptoPredictToken, presaleEndsAt);
   await staking.waitForDeployment();
   r.PresaleStaking = await staking.getAddress();
   console.log("✅ PresaleStaking:", r.PresaleStaking);
@@ -108,6 +111,7 @@ async function main() {
   const STAKING_SUPPLY = hre.ethers.parseEther("5000000");
   const txS = await token.transfer(r.PresaleStaking, STAKING_SUPPLY);
   await txS.wait();
+  await sleep(4000);
   const stakingBal = await token.balanceOf(r.PresaleStaking);
   console.log("✅ Staking finanziato:", hre.ethers.formatEther(stakingBal), "CPRED");
 
