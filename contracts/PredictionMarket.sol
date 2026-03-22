@@ -87,6 +87,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     event MarketResolved(uint256 indexed id, Outcome outcome, address resolver);
     event PayoutClaimed(uint256 indexed marketId, address indexed user, uint256 amount);
     event MarketCancelled(uint256 indexed id);
+    event ProtocolFeeDistributed(uint256 indexed marketId, uint256 amount);
 
     // ── CONSTRUCTOR ──────────────────────────────────────────────────
 
@@ -314,9 +315,19 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         uint256 creatorFee  = (grossPayout * CREATOR_FEE_BPS) / 10000;
         uint256 netPayout   = grossPayout - fee - creatorFee;
 
-        // Paga creatore
+        // Paga creatore (1%)
         if (creatorFee > 0 && m.creator != address(0)) {
             payable(m.creator).transfer(creatorFee);
+        }
+
+        // Protocol fee (1%) → CPRED stakers via depositRewards()
+        uint256 protocolFee = fee - creatorFee;
+        if (protocolFee > 0) {
+            try cpredToken.depositRewards{value: protocolFee}() {
+                emit ProtocolFeeDistributed(marketId, protocolFee);
+            } catch {
+                // Se fallisce (es. nessuno sta staking) teniamo i fondi nel contratto
+            }
         }
 
         // Paga vincitore
@@ -425,4 +436,20 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     }
 
     receive() external payable {}
+
+    /// @notice Mostra ETH accumulato nel contratto (fee non distribuite)
+    function accumulatedFees() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    /// @notice Emergency: team può distribuire manualmente i fee accumulati
+    function distributeAccumulatedFees() external onlyOwner {
+        uint256 bal = address(this).balance;
+        require(bal > 0, "Nothing to distribute");
+        try cpredToken.depositRewards{value: bal}() {
+            emit ProtocolFeeDistributed(0, bal);
+        } catch {
+            payable(owner()).transfer(bal);
+        }
+    }
 }
