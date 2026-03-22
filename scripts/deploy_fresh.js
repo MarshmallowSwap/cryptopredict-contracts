@@ -106,6 +106,12 @@ async function main() {
   console.log("✅ PresaleStaking:", r.PresaleStaking);
   await sleep(2000);
 
+  // Collega PresaleStaking al PredictionMarket per il check CPRED
+  const setStakingTx = await market.setPresaleStaking(r.PresaleStaking);
+  await setStakingTx.wait();
+  console.log("✅ PresaleStaking collegato al Market");
+  await sleep(1500);
+
   // Finanzia staking con 5M CPRED
   console.log("💰 Trasferimento 5M CPRED allo staking...");
   const STAKING_SUPPLY = hre.ethers.parseEther("5000000");
