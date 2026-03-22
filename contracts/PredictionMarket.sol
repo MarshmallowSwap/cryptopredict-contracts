@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./CryptoPredictToken.sol";
 
 /**
@@ -18,12 +19,6 @@ import "./CryptoPredictToken.sol";
  *
  * Yield: il contratto accumula le fee e le distribuisce agli staker CPRED.
  */
-interface IERC20 {
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function transfer(address to, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}
-
 contract PredictionMarket is Ownable, ReentrancyGuard {
 
     // ── STRUTTURE ────────────────────────────────────────────────────
