@@ -2,12 +2,12 @@ const hre = require("hardhat");
 const fs = require("fs");
 
 const EXISTING = {
-  CryptoPredictToken: "0x964037302F0DDEba0d5CCc05D0AadC9072441537",
-  CPREDPresale:       "0x5aadc00ef73dC4f1F0906225F6805E2697Cde506",
-  PresaleStaking:     "0x7a13e7eFC571A8ab2A4128E48fAff798164F4451",
-  MockUSDC:           "0x5D9dce17290B38774D3cc4706C8f20c689C47419",
-  MockUSDT:           "0x431096b64586c5b73f50d94D9FddF29ad9564E25",
-  PredictionMarket:   "0x87B5060d985550a88aa43461a77D17335102ae46",
+  CryptoPredictToken: "0xdA65d2571D3166dC31F7F019D8b27cb525b262A2",
+  CPREDPresale:       "0x892e088bB1aB86F0B7fbE0f2e70429C57419a425",
+  PresaleStaking:     "0xf35c3623335B1a0a59c4ba9862a21631E912f0AB",
+  MockUSDC:           "0xD56eFf0a7230e5FC88Aa1BE61A04Dea9Dfa40908",
+  MockUSDT:           "0xfE20e95290a1D9dB2DaDdfdCd6f87047dC2DB61b",
+  PredictionMarket:   "0x121668978cdf98672B1F60C2c1d64ce71A1CEFD9",
 };
 
 async function main() {
