@@ -7,7 +7,7 @@ const EXISTING = {
   PresaleStaking:     "0x7a13e7eFC571A8ab2A4128E48fAff798164F4451",
   MockUSDC:           "0x5D9dce17290B38774D3cc4706C8f20c689C47419",
   MockUSDT:           "0x431096b64586c5b73f50d94D9FddF29ad9564E25",
-  PredictionMarket:   "0x87B5060d985550a88aa43461a77D17335102ae46",  // v2 con resolver whitelist
+  PredictionMarket:   "0x87B5060d985550a88aa43461a77D17335102ae46",
 };
 
 async function main() {
