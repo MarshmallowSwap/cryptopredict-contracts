@@ -95,6 +95,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     event PayoutClaimed(uint256 indexed marketId, address indexed user, uint256 amount);
     event MarketCancelled(uint256 indexed id);
     event ProtocolFeeDistributed(uint256 indexed marketId, uint256 amount);
+    event PositionTransferred(uint256 indexed marketId, address indexed from, address indexed to, uint256 amount);
 
     // ── CONSTRUCTOR ──────────────────────────────────────────────────
 
@@ -522,6 +523,50 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     /// @notice Mostra ETH accumulato nel contratto (fee non distribuite)
     function accumulatedFees() external view returns (uint256) {
         return address(this).balance;
+    }
+
+    // ── POSITION TRANSFER (per mercato secondario) ─────────────────
+
+    /// @notice Trasferisce una posizione aperta a un altro indirizzo
+    /// @dev Usato da PositionMarket per il mercato secondario delle quote
+    function transferPosition(uint256 marketId, address from, address to)
+        external
+        marketExists(marketId)
+    {
+        // Solo il PositionMarket autorizzato o il diretto proprietario può trasferire
+        require(
+            msg.sender == positionMarket || msg.sender == from,
+            "Not authorized to transfer"
+        );
+        Market storage m = markets[marketId];
+        require(m.status == MarketStatus.Open, "Market not open");
+
+        Position storage fromPos = positions[marketId][from];
+        require(fromPos.amount > 0, "No position to transfer");
+        require(!fromPos.claimed, "Position already claimed");
+
+        Position storage toPos = positions[marketId][to];
+
+        // Se il destinatario ha già una posizione deve essere sullo stesso lato
+        if (toPos.amount > 0) {
+            require(toPos.side == fromPos.side, "Cannot merge opposite sides");
+        } else {
+            toPos.marketId = marketId;
+            toPos.side     = fromPos.side;
+        }
+
+        toPos.amount   += fromPos.amount;
+        fromPos.amount  = 0;
+        fromPos.claimed = true; // segna come consumata
+
+        emit PositionTransferred(marketId, from, to, toPos.amount);
+    }
+
+    address public positionMarket; // indirizzo PositionMarket autorizzato
+
+    /// @notice Imposta l'indirizzo del contratto PositionMarket
+    function setPositionMarket(address _pm) external onlyOwner {
+        positionMarket = _pm;
     }
 
     /// @notice Emergency: team può distribuire manualmente i fee accumulati
