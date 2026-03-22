@@ -61,6 +61,10 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     // Resolvers autorizzati (oltre all'owner)
     mapping(address => bool) public resolvers;
 
+    // Requisito CPRED per creare mercati
+    uint256 public minCpredToCreate = 1000e18;  // 1000 CPRED default
+    address public presaleStaking;              // contratto staking per contare CPRED stakati
+
     // Fee
     uint256 public constant PLATFORM_FEE_BPS = 200;  // 2% = 200 basis points
     uint256 public constant CREATOR_FEE_BPS  = 100;  // 1%
@@ -78,6 +82,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     event MarketCreated(uint256 indexed id, address creator, string question, uint256 expiresAt);
     event ResolverAdded(address indexed resolver);
     event ResolverRemoved(address indexed resolver);
+    event MinCpredUpdated(uint256 newMin);
     event BetPlaced(uint256 indexed marketId, address indexed user, bool side, uint256 amount);
     event MarketResolved(uint256 indexed id, Outcome outcome, address resolver);
     event PayoutClaimed(uint256 indexed marketId, address indexed user, uint256 amount);
@@ -97,6 +102,35 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         cpredToken = CryptoPredictToken(payable(_cpredToken));
         mockUsdc   = _usdc;
         mockUsdt   = _usdt;
+    }
+
+    // ── CPRED REQUIREMENT ────────────────────────────────────────────
+
+    /// @notice Imposta il minimo CPRED richiesto per creare mercati (0 = disabilitato)
+    function setMinCpredToCreate(uint256 _min) external onlyOwner {
+        minCpredToCreate = _min;
+        emit MinCpredUpdated(_min);
+    }
+
+    /// @notice Imposta l'indirizzo del contratto PresaleStaking
+    function setPresaleStaking(address _staking) external onlyOwner {
+        presaleStaking = _staking;
+    }
+
+    /// @notice Ritorna il balance CPRED effettivo di un utente (wallet + staked)
+    function cpredBalanceOf(address user) public view returns (uint256) {
+        uint256 walletBal = cpredToken.balanceOf(user);
+        uint256 stakedBal = 0;
+        if (presaleStaking != address(0)) {
+            // Legge lo staked balance dal contratto PresaleStaking
+            (bool ok, bytes memory data) = presaleStaking.staticcall(
+                abi.encodeWithSignature("getTotalStaked(address)", user)
+            );
+            if (ok && data.length >= 32) {
+                stakedBal = abi.decode(data, (uint256));
+            }
+        }
+        return walletBal + stakedBal;
     }
 
     // ── RESOLVER MANAGEMENT ─────────────────────────────────────────
@@ -140,6 +174,14 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         require(bytes(question).length > 0, "Empty question");
         require(expiresAt > block.timestamp + 1 hours, "Expiry too soon");
         require(msg.value >= 0.0025 ether, "Min creation fee: 0.0025 ETH");
+
+        // Verifica requisito CPRED (wallet + staked)
+        if (minCpredToCreate > 0) {
+            require(
+                cpredBalanceOf(msg.sender) >= minCpredToCreate,
+                "Insufficient CPRED: need 1000 CPRED in wallet or staking"
+            );
+        }
 
         marketId = marketCount++;
         markets[marketId] = Market({
