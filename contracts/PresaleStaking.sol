@@ -291,8 +291,8 @@ contract PresaleStaking is Ownable, ReentrancyGuard {
 
     /// @notice Ritorna il totale CPRED stakato da un utente in tutti i pool
     function getTotalStaked(address user) external view returns (uint256 total) {
-        for (uint8 i = 0; i < 3; i++) {
-            total += userStakes[i][user].amount;
+        for (uint256 i = 0; i < 3; i++) {
+            total += positions[user][i].amount;
         }
     }
 }
