@@ -122,6 +122,26 @@ async function main() {
   const stakingBal = await token.balanceOf(r.PresaleStaking);
   console.log("✅ Staking finanziato:", hre.ethers.formatEther(stakingBal), "CPRED");
 
+  // ── 7. PositionMarket ───────────────────────────────────────────
+  console.log("\n📦 [7/7] PositionMarket...");
+  const PosMkt = await hre.ethers.getContractFactory("PositionMarket");
+  const DEPLOYER_ADDR = deployer.address;
+  const posMkt = await PosMkt.deploy(
+    r.PredictionMarket,
+    r.MockUSDC, r.MockUSDT, r.CryptoPredictToken,
+    DEPLOYER_ADDR  // fee recipient = deployer per ora
+  );
+  await posMkt.waitForDeployment();
+  r.PositionMarket = await posMkt.getAddress();
+  console.log("✅ PositionMarket:", r.PositionMarket);
+  await sleep(2000);
+
+  // Autorizza PositionMarket nel PredictionMarket
+  const setPosMktTx = await market.setPositionMarket(r.PositionMarket);
+  await setPosMktTx.wait();
+  console.log("✅ PositionMarket autorizzato nel PredictionMarket");
+  await sleep(1500);
+
   // ── SUMMARY ──────────────────────────────────────────────────────
   console.log("\n" + "=".repeat(55));
   console.log("🎉 DEPLOY COMPLETATO!");
@@ -132,6 +152,7 @@ async function main() {
   console.log("   PresaleStaking:     ", r.PresaleStaking);
   console.log("   MockUSDC:           ", r.MockUSDC);
   console.log("   MockUSDT:           ", r.MockUSDT);
+  console.log("   PositionMarket:     ", r.PositionMarket);
   console.log("=".repeat(55));
   console.log("BaseScan:", "https://sepolia.basescan.org/address/" + r.PredictionMarket);
 
