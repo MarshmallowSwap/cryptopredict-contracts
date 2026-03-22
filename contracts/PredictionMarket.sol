@@ -228,7 +228,8 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
             yieldAccrued: 0,
             status:       MarketStatus.Open,
             outcome:      Outcome.Unresolved,
-            resolver:     address(0)
+            resolver:     address(0),
+            currency:     currency
         });
 
         userMarkets[msg.sender].push(marketId);
