@@ -1,0 +1,39 @@
+name: Recovery contract validation
+on:
+  pull_request:
+  push:
+    branches: ["work/recovery-contracts-20260930"]
+permissions:
+  contents: read
+jobs:
+  accounting-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m unittest discover -s validation -v
+  local-evm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - name: Install isolated pinned direct dependencies
+        # First successful install must supply a reviewed lockfile before merge.
+        run: npm --prefix recovery install --ignore-scripts --no-audit --no-fund
+      - name: Compile candidate and run local EVM tests (no RPC, keys, or secrets)
+        run: npm --prefix recovery test
+      - name: Preserve compiler identity and generated dependency lock for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-reproducibility
+          if-no-files-found: ignore
+          path: |
+            recovery/package-lock.json
+            recovery/source-manifest.json

@@ -1,65 +1,34 @@
-# CryptoPredict — Smart Contracts
+# CryptoPredict contracts — recovery candidate
 
-Contratti Solidity per il prediction market su **Base Sepolia** (testnet).
+**DRAFT. Not compiled or EVM-validated in the recovery environment yet. Do not deploy this branch.**
 
-## Contratti
+This branch contains a candidate replacement for `PredictionMarket.sol` and an
+isolated validation harness. It is not an upgrade or migration of existing
+contracts, does not change existing deployments, and does not enable production
+trading. The candidate constructor is restricted to chain IDs 31337 and 84532.
 
-| Contratto | Descrizione |
-|---|---|
-| `CryptoPredictToken.sol` | ERC-20 $CPRED — 100M supply, staking integrato |
-| `PredictionMarket.sol` | Prediction market full on-chain — pool, bet, payout |
-| `CPREDPresale.sol` | Presale 3-stage con auto-advance |
+Start with `docs/RECOVERY_PHASE_2.md`. The original README and deployment scripts
+remain available in the baseline history at `5d6b085`.
 
-## Setup
+## Independent accounting checks (no external packages)
 
-```bash
-# 1. Installa dipendenze
-npm install
-
-# 2. Configura env
-cp .env.example .env
-nano .env  # aggiungi DEPLOYER_PRIVATE_KEY
-
-# 3. Ottieni ETH testnet su Base Sepolia
-# → https://www.coinbase.com/faucets/base-ethereum-goerli-faucet
-# → https://faucet.quicknode.com/base/sepolia
-
-# 4. Compila
-npm run compile
-
-# 5. Deploy su Base Sepolia
-npm run deploy:sepolia
+```sh
+python -m unittest discover -s validation -v
 ```
 
-## Faucets Base Sepolia
+These tests validate an integer accounting model, NOT Solidity execution.
 
-- https://faucet.quicknode.com/base/sepolia
-- https://www.alchemy.com/faucets/base-sepolia
-- https://coinbase.com/faucets
+## Candidate compilation and local EVM tests
 
-## ABI (dopo il deploy)
-
-Gli ABI vengono generati automaticamente in `artifacts/contracts/`.
-Copiare in `frontend/abi/` per usarli con ethers.js.
-
-## Architettura on-chain
-
-```
-User → PredictionMarket.placeBet(marketId, side) + ETH
-              ↓
-         Pool YES/NO accumula ETH
-         Yield simulato calcolato on-chain
-              ↓
-Admin → PredictionMarket.resolveMarket(marketId, yesWon)
-              ↓
-         1% protocol fee → CPREDToken.depositRewards()
-         → distribuito agli staker CPRED
-              ↓
-User → PredictionMarket.claimPayout(marketId)
-         → ETH trasferito al vincitore (meno fee)
-         → fee dimezzata se hai ≥ 1000 CPRED
+```sh
+npm --prefix recovery install --ignore-scripts --no-audit --no-fund
+npm --prefix recovery test
 ```
 
-## Indirizzi su Base Sepolia
+The recovery configuration does not read `.env`, RPC URLs or deployment keys.
+It compiles the actual candidate source with Solidity 0.8.24 and uses a local
+Hardhat chain. It does NOT test the old presale, staking, AMM or secondary market.
 
-Aggiornati dopo il deploy in `deployments/base-sepolia.json`.
+A reviewed dependency lockfile, successful compiler output, all EVM tests,
+bytecode review and explicit deployment gates are required before any release.
+Do not use the root legacy deployment scripts for this recovery candidate.
