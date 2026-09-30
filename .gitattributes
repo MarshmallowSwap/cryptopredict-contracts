@@ -1,0 +1,9 @@
+contracts/PredictionMarket.sol text eol=lf
+contracts/test/RecoveryFixtures.sol text eol=lf
+recovery/package.json text eol=lf
+recovery/hardhat.config.js text eol=lf
+recovery/prepare-sources.cjs text eol=lf
+recovery/test/prediction-market.test.js text eol=lf
+recovery/package-lock.json -text
+recovery/tools/*.cjs text eol=lf
+recovery/tools-test/*.cjs text eol=lf

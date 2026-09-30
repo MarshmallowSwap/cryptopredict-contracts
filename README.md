@@ -1,34 +1,28 @@
 # CryptoPredict contracts — recovery candidate
 
-**DRAFT. Not compiled or EVM-validated in the recovery environment yet. Do not deploy this branch.**
+**DRAFT. The owner-supplied Windows run passed compilation and all 47 EVM tests
+for commit `3a7fec3`. No public deployment or audit is implied.**
 
-This branch contains a candidate replacement for `PredictionMarket.sol` and an
-isolated validation harness. It is not an upgrade or migration of existing
-contracts, does not change existing deployments, and does not enable production
-trading. The candidate constructor is restricted to chain IDs 31337 and 84532.
+The current tooling additions do not change the validated Solidity source,
+Hardhat configuration or EVM test cases. See `docs/VERIFIED_BASELINE.md` for the
+current evidence, checksum checks and local-only integration preparation.
+Historical recovery notes are preserved in `docs/RECOVERY_PHASE_2.md`.
 
-Start with `docs/RECOVERY_PHASE_2.md`. The original README and deployment scripts
-remain available in the baseline history at `5d6b085`.
-
-## Independent accounting checks (no external packages)
+## Local checks, without GitHub Actions
 
 ```sh
 python -m unittest discover -s validation -v
+node --test recovery/tools-test/verified-baseline.test.cjs
 ```
 
-These tests validate an integer accounting model, NOT Solidity execution.
+The Python suite is an independent accounting model. The Node tooling tests do
+not run Solidity. For EVM replay, import the original owner-supplied lockfile and
+use `npm ci` as described in the current runbook. The exact lockfile is in the
+handoff package; the remote commit currently stores its manifest and importer,
+not the lockfile itself. Do not mistake a manifest for a complete dependency lock.
 
-## Candidate compilation and local EVM tests
-
-```sh
-npm --prefix recovery install --ignore-scripts --no-audit --no-fund
-npm --prefix recovery test
-```
-
-The recovery configuration does not read `.env`, RPC URLs or deployment keys.
-It compiles the actual candidate source with Solidity 0.8.24 and uses a local
-Hardhat chain. It does NOT test the old presale, staking, AMM or secondary market.
-
-A reviewed dependency lockfile, successful compiler output, all EVM tests,
-bytecode review and explicit deployment gates are required before any release.
-Do not use the root legacy deployment scripts for this recovery candidate.
+The candidate permits only chain IDs 31337 and 84532. The generated integration
+interface defaults to LOCAL chain 31337, no contract address and signing disabled.
+Do not use the root legacy deployment scripts, connect legacy staking/secondary
+contracts, or move funds based on these test results. No in-place upgrade or
+automatic migration of existing contracts is supported.
