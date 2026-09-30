@@ -1,65 +1,43 @@
-# CryptoPredict — Smart Contracts
+# CryptoPredict contracts — recovery e laboratorio locale
 
-Contratti Solidity per il prediction market su **Base Sepolia** (testnet).
+**DRAFT. Il contratto al commit `3a7fec3` ha superato compilazione e 47 test EVM
+sul PC Windows del proprietario. Nessun audit o deployment pubblico è implicito.**
 
-## Contratti
+Il sorgente Solidity, la configurazione Hardhat e i 47 test rimangono invariati.
+Le nuove aggiunte realizzano un laboratorio browser separato dal sito pubblico.
+Lo smoke test di questo nuovo adattatore deve ancora essere eseguito sul PC.
 
-| Contratto | Descrizione |
-|---|---|
-| `CryptoPredictToken.sol` | ERC-20 $CPRED — 100M supply, staking integrato |
-| `PredictionMarket.sol` | Prediction market full on-chain — pool, bet, payout |
-| `CPREDPresale.sol` | Presale 3-stage con auto-advance |
+## Laboratorio browser, senza Actions
 
-## Setup
+Seguire [docs/LOCAL_LAB.md](docs/LOCAL_LAB.md). In sintesi:
 
-```bash
-# 1. Installa dipendenze
-npm install
-
-# 2. Configura env
-cp .env.example .env
-nano .env  # aggiungi DEPLOYER_PRIVATE_KEY
-
-# 3. Ottieni ETH testnet su Base Sepolia
-# → https://www.coinbase.com/faucets/base-ethereum-goerli-faucet
-# → https://faucet.quicknode.com/base/sepolia
-
-# 4. Compila
-npm run compile
-
-# 5. Deploy su Base Sepolia
-npm run deploy:sepolia
+```sh
+node recovery/tools/restore-lock.cjs
+node recovery/tools/verified-baseline.cjs check
+npm --prefix recovery ci --ignore-scripts --include=dev --no-audit --no-fund
+npm --prefix recovery run compile
+node recovery/lab/smoke.cjs
+node recovery/lab/server.cjs
 ```
 
-## Faucets Base Sepolia
+Il lock COMPLETO della prova riuscita è archiviato in forma compressa in
+`recovery/locked-dependencies/`; lo script lo ricostruisce byte per byte in
+`recovery/package-lock.json`, senza aggiornare le versioni né sovrascrivere
+un file differente. Non occorre più recuperarlo dal vecchio ZIP delle evidenze.
 
-- https://faucet.quicknode.com/base/sepolia
-- https://www.alchemy.com/faucets/base-sepolia
-- https://coinbase.com/faucets
+L'interfaccia usa solo `http://127.0.0.1:8787`, Hardhat in memoria (31337), tre
+wallet temporanei e token fixture. Non collegare MetaMask o inviare fondi reali.
+Supabase, il sito Vercel, staking, oracoli e secondario restano scollegati.
+Il seed è una posizione YES del creatore, non liquidità AMM neutrale.
 
-## ABI (dopo il deploy)
+## Controlli separati
 
-Gli ABI vengono generati automaticamente in `artifacts/contracts/`.
-Copiare in `frontend/abi/` per usarli con ethers.js.
-
-## Architettura on-chain
-
-```
-User → PredictionMarket.placeBet(marketId, side) + ETH
-              ↓
-         Pool YES/NO accumula ETH
-         Yield simulato calcolato on-chain
-              ↓
-Admin → PredictionMarket.resolveMarket(marketId, yesWon)
-              ↓
-         1% protocol fee → CPREDToken.depositRewards()
-         → distribuito agli staker CPRED
-              ↓
-User → PredictionMarket.claimPayout(marketId)
-         → ETH trasferito al vincitore (meno fee)
-         → fee dimezzata se hai ≥ 1000 CPRED
+```sh
+python -m unittest discover -s validation -v
+node --test recovery/tools-test/verified-baseline.test.cjs
+node --test recovery/lab-test/local-lab.test.cjs
 ```
 
-## Indirizzi su Base Sepolia
-
-Aggiornati dopo il deploy in `deployments/base-sepolia.json`.
+Il modello Python e i controlli Node non sostituiscono i test EVM. Stato delle
+verifiche in `docs/LOCAL_LAB.md`; evidenze storiche in `docs/VERIFIED_BASELINE.md`.
+Non usare gli script legacy di deploy né effettuare un upgrade in-place.

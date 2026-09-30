@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "repository": "MarshmallowSwap/cryptopredict-contracts",
+  "commit": "3a7fec33824c3f27e450076437db05b0ee4a268b",
+  "evidenceArchiveSha256": "b3e385a564e8b55ad35df1d323589a296d0d66a52bd74c7c2a5dbfa30fcdc2ab",
+  "evidenceOrigin": "owner-supplied Windows execution; not rerun by this verifier",
+  "lock": {
+    "path": "recovery/package-lock.json",
+    "sha256": "7ce81bdcdc07f2cc540602b3889baccc4d657f1b87c5f4999bbbf50c3d8d6e45",
+    "gitBlob": "f1a5fb8f2a9172a2035c794eccad271bb01932a5",
+    "packageCount": 316
+  },
+  "sourceGitBlobs": {
+    "contracts/PredictionMarket.sol": "da68fa9dc420d8fe9cb2c2973be88c4c36652a49",
+    "contracts/test/RecoveryFixtures.sol": "d86b5759f3d0f762f22842d91387aacd8e2bb5ae",
+    "recovery/package.json": "73a4c1a9ea15f574643ad5aa62525c3c66766a57",
+    "recovery/hardhat.config.js": "9acfe99920cf6fde5ffbf5e4058cfa8a174323c9",
+    "recovery/prepare-sources.cjs": "ebd471ca2f1b883679253a6a56bd4f32fa6009de",
+    "recovery/test/prediction-market.test.js": "107ccd37bd719d275c26e866d03024f4f57251ac"
+  },
+  "artifact": {
+    "sha256": "5e58b3123c7406419818354e9d1da0b5d8f10675a98a4794270325ba52eed275",
+    "runtimeBytes": 17822,
+    "creationBytes": 18609
+  },
+  "validatedEnvironment": {
+    "node": "22.23.3",
+    "npm": "10.9.9",
+    "hardhat": "2.22.18",
+    "solc": "0.8.24+commit.e11b9ed9",
+    "evmVersion": "paris",
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "chainId": 31337
+  },
+  "evmResult": {
+    "passing": 47,
+    "failing": 0,
+    "pending": 0
+  },
+  "publicDeploymentVerified": false
+}
