@@ -96,7 +96,7 @@ async function mined(tx,label){
   const usdcAfter=await usdc.balanceOf(wallet.address);
   const ethAfter=await provider.getBalance(wallet.address);
 
-  if(m.yesPool!==seed)fail('YES pool inatteso');
+  if(m.yesPool!==seed+bet)fail('YES pool inatteso');
   if(m.noPool!==0n)fail('NO pool inatteso');
   if(escrow!==seed+bet)fail('Escrow mercato inatteso');
   if(pos.amount!==seed+bet)fail('Posizione creatore inattesa');
