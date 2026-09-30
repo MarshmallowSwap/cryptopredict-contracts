@@ -87,7 +87,7 @@ async function mined(tx,label){
   if(countAfter!==countBefore+1n)fail('marketCount non incrementato');
   const marketId=countBefore;
 
-  await mined(await market.placeBetERC20(marketId,false,1,bet),'placeBet NO 25 USDC');
+  const betRec=await mined(await market.placeBetERC20(marketId,true,1,bet),'placeBet YES 25 USDC');
 
   const m=await market.getMarket(marketId);
   const pos=await market.getPosition(marketId,wallet.address);
@@ -97,19 +97,17 @@ async function mined(tx,label){
   const ethAfter=await provider.getBalance(wallet.address);
 
   if(m.yesPool!==seed)fail('YES pool inatteso');
-  if(m.noPool!==bet)fail('NO pool inatteso');
+  if(m.noPool!==0n)fail('NO pool inatteso');
   if(escrow!==seed+bet)fail('Escrow mercato inatteso');
-  if(pos.amount!==seed) {
-    // creator already owns YES position; same wallet cannot bet opposite side.
-    // This branch should never be reached because placeBetERC20(NO) should revert.
-  }
+  if(pos.amount!==seed+bet)fail('Posizione creatore inattesa');
+  if(pos.side!==true)fail('Lato posizione creatore inatteso');
 
   const out={
     schemaVersion:1,purpose:'cryptopredict-recovery-base-sepolia-smoke',
     generatedAt:new Date().toISOString(),chainId:CHAIN,wallet:wallet.address,
     contracts:ADDR,
-    transactions:{faucet:faucetRec.hash,createMarket:createRec.hash},
-    note:'The same creator wallet cannot bet the opposite side; a second wallet is required for a true two-sided market smoke test.',
+    transactions:{faucet:faucetRec.hash,createMarket:createRec.hash,bet:betRec.hash},
+    note:'Single-wallet smoke: creator seed YES plus an additional YES bet. A second wallet is required for a true two-sided market smoke test.',
     state:{
       marketId:marketId.toString(),
       yesPool:m.yesPool.toString(),
