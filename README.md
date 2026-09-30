@@ -1,28 +1,43 @@
-# CryptoPredict contracts — recovery candidate
+# CryptoPredict contracts — recovery e laboratorio locale
 
-**DRAFT. The owner-supplied Windows run passed compilation and all 47 EVM tests
-for commit `3a7fec3`. No public deployment or audit is implied.**
+**DRAFT. Il contratto al commit `3a7fec3` ha superato compilazione e 47 test EVM
+sul PC Windows del proprietario. Nessun audit o deployment pubblico è implicito.**
 
-The current tooling additions do not change the validated Solidity source,
-Hardhat configuration or EVM test cases. See `docs/VERIFIED_BASELINE.md` for the
-current evidence, checksum checks and local-only integration preparation.
-Historical recovery notes are preserved in `docs/RECOVERY_PHASE_2.md`.
+Il sorgente Solidity, la configurazione Hardhat e i 47 test rimangono invariati.
+Le nuove aggiunte realizzano un laboratorio browser separato dal sito pubblico.
+Lo smoke test di questo nuovo adattatore deve ancora essere eseguito sul PC.
 
-## Local checks, without GitHub Actions
+## Laboratorio browser, senza Actions
+
+Seguire [docs/LOCAL_LAB.md](docs/LOCAL_LAB.md). In sintesi:
+
+```sh
+node recovery/tools/restore-lock.cjs
+node recovery/tools/verified-baseline.cjs check
+npm --prefix recovery ci --ignore-scripts --include=dev --no-audit --no-fund
+npm --prefix recovery run compile
+node recovery/lab/smoke.cjs
+node recovery/lab/server.cjs
+```
+
+Il lock COMPLETO della prova riuscita è archiviato in forma compressa in
+`recovery/locked-dependencies/`; lo script lo ricostruisce byte per byte in
+`recovery/package-lock.json`, senza aggiornare le versioni né sovrascrivere
+un file differente. Non occorre più recuperarlo dal vecchio ZIP delle evidenze.
+
+L'interfaccia usa solo `http://127.0.0.1:8787`, Hardhat in memoria (31337), tre
+wallet temporanei e token fixture. Non collegare MetaMask o inviare fondi reali.
+Supabase, il sito Vercel, staking, oracoli e secondario restano scollegati.
+Il seed è una posizione YES del creatore, non liquidità AMM neutrale.
+
+## Controlli separati
 
 ```sh
 python -m unittest discover -s validation -v
 node --test recovery/tools-test/verified-baseline.test.cjs
+node --test recovery/lab-test/local-lab.test.cjs
 ```
 
-The Python suite is an independent accounting model. The Node tooling tests do
-not run Solidity. For EVM replay, import the original owner-supplied lockfile and
-use `npm ci` as described in the current runbook. The exact lockfile is in the
-handoff package; the remote commit currently stores its manifest and importer,
-not the lockfile itself. Do not mistake a manifest for a complete dependency lock.
-
-The candidate permits only chain IDs 31337 and 84532. The generated integration
-interface defaults to LOCAL chain 31337, no contract address and signing disabled.
-Do not use the root legacy deployment scripts, connect legacy staking/secondary
-contracts, or move funds based on these test results. No in-place upgrade or
-automatic migration of existing contracts is supported.
+Il modello Python e i controlli Node non sostituiscono i test EVM. Stato delle
+verifiche in `docs/LOCAL_LAB.md`; evidenze storiche in `docs/VERIFIED_BASELINE.md`.
+Non usare gli script legacy di deploy né effettuare un upgrade in-place.

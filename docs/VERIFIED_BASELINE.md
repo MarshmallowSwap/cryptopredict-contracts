@@ -14,17 +14,19 @@ la lettura delle evidenze non e una nuova esecuzione dei test.
 
 Il lockfile originale e disponibile nel pacchetto di consegna, invariato:
 SHA-256 `7ce81bdcdc07f2cc540602b3889baccc4d657f1b87c5f4999bbbf50c3d8d6e45`.
-**Il manifest non sostituisce il lockfile. Il file package-lock.json non e ancora
-incluso nel commit remoto di questo aggiornamento; e incluso nella consegna
-locale e nella patch separata. Non dichiarare completato quel passaggio remoto.**
+**Il lockfile completo ora è conservato nell'archivio versionato
+`recovery/locked-dependencies/`. `node recovery/tools/restore-lock.cjs` ricostruisce
+il package-lock.json originale e verifica i byte. Non è soltanto un manifest.**
+Vedere `docs/LOCAL_LAB.md` per l'avvio autonomo; il precedente import manuale
+resta disponibile ma non è più necessario.
 
 ## Riproduzione locale senza Actions
 
-Dalla radice del repository del branch recovery, importare il lockfile originale
-estratto dal report del proprietario (l'import non sovrascrive un lock differente):
+Dalla radice del repository del branch recovery, ricostruire il lockfile
+dall'archivio versionato. Il comando non sovrascrive un lock differente:
 
 ```sh
-node recovery/tools/verified-baseline.cjs import-lock /percorso/package-lock.json
+node recovery/tools/restore-lock.cjs
 node recovery/tools/verified-baseline.cjs check
 npm --prefix recovery ci --ignore-scripts --no-audit --no-fund
 node recovery/tools/verified-baseline.cjs check
@@ -75,7 +77,7 @@ come se fossero nuovi scenari del contratto.
 ## Stato e confini
 
 Nessun merge, deploy, migrazione o accesso a chiavi. GitHub Actions resta escluso.
-Restano da completare: inserimento remoto del lockfile, collaudo UI/wallet/dati,
+Restano da completare: esecuzione del nuovo laboratorio sul PC, integrazione del frontend pubblico e dei dati,
 regole oracle e risoluzione, verifica HTTPS del backend, backup e credenziali.
 Il seed e ancora una scelta provvisoria; nessuna mainnet e autorizzata da questo
 aggiornamento. I vecchi documenti che dicono EVM non compilato descrivono lo stato
